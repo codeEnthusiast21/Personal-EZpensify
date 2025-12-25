@@ -1,11 +1,24 @@
-# Personal EZpensify 💸
+# Personal EZpensify 
 
 **Personal EZpensify** is a full-stack personal finance application for tracking **expenses and income** in a simple, structured, and secure way.  
 It is designed as a **mobile-first app** with a custom backend and modern authentication.
 
 ---
 
-## 🚀 Features
+## 📸 Screenshots
+
+### Authentication Screen
+![Authentication](screenshots/auth.png)
+
+### Home Screen
+![Home](screenshots/home.png)
+
+### Create Expense / Income
+![Create Expense or Income](screenshots/create-expense-income.png)
+
+---
+
+##  Features
 
 - 🔐 Secure authentication using **Clerk**
 - 💰 Track **expenses & income**
@@ -51,7 +64,7 @@ This helps maintain backend stability and avoids unexpected load spikes.
 
 ---
 
-### ⏱️ Cron Job (Backend Revival – Every 14 Minutes)
+###  Cron Job (Backend Revival – Every 14 Minutes)
 
 A cron job runs **every 14 minutes** to ping the backend server.
 
@@ -66,6 +79,3 @@ A cron job runs **every 14 minutes** to ping the backend server.
 - Logs the successful wake-up silently (no user impact)
 
 ---
-
-## 📂 Project Structure
-
