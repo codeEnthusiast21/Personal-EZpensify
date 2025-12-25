@@ -3,20 +3,16 @@
 **Personal EZpensify** is a full-stack personal finance application for tracking **expenses and income** in a simple, structured, and secure way.  
 It is designed as a **mobile-first app** with a custom backend and modern authentication.
 
----
-
 ## 📸 Screenshots
 
-### Authentication Screen
-![Authentication](screenshots/auth.png)
-
-### Home Screen
-![Home](screenshots/home.png)
-
-### Create Expense / Income
-![Create Expense or Income](screenshots/create-expense-income.png)
+| Authentication | Home | Create Expense / Income |
+|----------------|------|--------------------------|
+| ![](screenshots/auth.png) | ![](screenshots/home.png) | ![](screenshots/create-expense-income.png) |
 
 ---
+
+
+
 
 ##  Features
 
