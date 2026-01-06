@@ -1,14 +1,28 @@
 import express from 'express';
-import { getTransactionbyUserId, createTransaction, deleteTransaction, getSummaryByUserId } from '../controllers/transactionControllers.js';
+import { getTransactionbyUserId, createTransaction, deleteTransaction, getSummaryByUserId, getSettlementPlan, createGroupExpense, requestSettlement, getPendingSettlements, confirmSettlement, rejectSettlement } from '../controllers/transactionControllers.js';
 
 const router = express.Router();
 
-router.get("/summary/:userID", getSummaryByUserId);
+router.get("/transactions/summary/:userID", getSummaryByUserId);
 
-router.get("/:userId", getTransactionbyUserId);
+router.get("/transactions/:userId", getTransactionbyUserId);
 
-router.post("/", createTransaction);  // POST must be here
+router.post("/transactions/", createTransaction);
 
-router.delete("/:id", deleteTransaction);
+router.delete("/transactions/:id", deleteTransaction);
+
+router.get("/groups/:groupId/settlements", getSettlementPlan);
+
+router.post("/groups/:groupId/expenses", createGroupExpense);
+
+router.post("/groups/:groupId/settlements/request", requestSettlement);
+
+router.get("/settlements/pending/:userId", getPendingSettlements);
+
+router.post("/settlements/:settlementId/confirm", confirmSettlement);
+
+router.post("/settlements/:settlementId/reject", rejectSettlement);
+
+
 
 export default router;

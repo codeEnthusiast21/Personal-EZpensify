@@ -21,7 +21,7 @@ const PORT = process.env.PORT;
 
 
 
-app.use("/api/transactions", transactionRoutes);
+app.use("/api", transactionRoutes);
 app.get("/", (req, res) => {
     res.send("EZpensify Backend is running");
 })

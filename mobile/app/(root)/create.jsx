@@ -4,7 +4,6 @@ import {
   Alert,
   TouchableOpacity,
   TextInput,
-  ActivityIndicatorBase,
   ActivityIndicator,
 } from "react-native";
 import { useRouter } from "expo-router";
@@ -24,8 +23,6 @@ const CATEGORIES = [
   { id: "income", name: "Income", icon: "cash" },
   { id: "other", name: "Other", icon: "ellipsis-horizontal" },
 ];
-// const API_URL = "https://personal-ezpensify.onrender.com/api";
-
 
 const CreateScreen = () => {
   const router = useRouter();
