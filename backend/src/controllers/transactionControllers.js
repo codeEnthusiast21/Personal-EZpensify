@@ -1,99 +1,99 @@
 import { sql } from "../config/db.js";
 
 export async function getTransactionbyUserId(req, res) {
-    try {
-        const { userId } = req.params;
-        const transactions = await sql`
+  try {
+    const { userId } = req.params;
+    const transactions = await sql`
                 SELECT * FROM transactions WHERE user_id = ${userId} ORDER BY created_at DESC
             `;
-        res.status(200).json(transactions);
+    res.status(200).json(transactions);
 
 
-    } catch (err) {
-        console.log("Error fetching transactions:", err);
-        res.status(500).json({ message: "Internal server error" });
-    }
+  } catch (err) {
+    console.log("Error fetching transactions:", err);
+    res.status(500).json({ message: "Internal server error" });
+  }
 }
 
 // for personal expense management
 
 export async function createTransaction(req, res) {
 
-    try {
-        const { title, amount, category, user_id } = req.body;
-        if (!title || amount === undefined || !category || !user_id) {
-            return res.status(400).json({ message: "All fields are required" });
-        }
+  try {
+    const { title, amount, category, user_id } = req.body;
+    if (!title || amount === undefined || !category || !user_id) {
+      return res.status(400).json({ message: "All fields are required" });
+    }
 
-        const transaction = await sql`
+    const transaction = await sql`
             INSERT INTO transactions (title, amount, category, user_id) 
             VALUES (${title}, ${amount}, ${category}, ${user_id})
             RETURNING *
         `;
-        console.log("Transaction created:", transaction);
-        res.status(201).json(transaction[0]);
+    console.log("Transaction created:", transaction);
+    res.status(201).json(transaction[0]);
 
-    }
-    catch (err) {
-        console.log("Error creating the transaction:", err)
-        res.status(500).json({ message: "Internal server error" });
+  }
+  catch (err) {
+    console.log("Error creating the transaction:", err)
+    res.status(500).json({ message: "Internal server error" });
 
-    }
+  }
 
 }
 
 export async function deleteTransaction(req, res) {
-    try {
-        const { id } = req.params;
+  try {
+    const { id } = req.params;
 
-        //both 55 and dda are string type but dda crashed when goes into SQL query , therefore
-        if (isNaN(parseInt(id))) {
-            return res.status(400).json({ message: "Invalid transaction ID" });
-        }
-        const result = await sql`
+    //both 55 and dda are string type but dda crashed when goes into SQL query , therefore
+    if (isNaN(parseInt(id))) {
+      return res.status(400).json({ message: "Invalid transaction ID" });
+    }
+    const result = await sql`
             DELETE FROM transactions where id = ${id} returning *
         `
-        if (result.length === 0) {
-            return res.status(404).json({ message: "transaction not found" })
-        }
-
-        res.status(200).json({ message: "transaction deleted successfully" })
-
-
-    } catch (err) {
-        console.log("Error deleting the transaction:", err)
-        res.status(500).json({ message: "Internal server error" });
-
+    if (result.length === 0) {
+      return res.status(404).json({ message: "transaction not found" })
     }
+
+    res.status(200).json({ message: "transaction deleted successfully" })
+
+
+  } catch (err) {
+    console.log("Error deleting the transaction:", err)
+    res.status(500).json({ message: "Internal server error" });
+
+  }
 }
 
 export async function getSummaryByUserId(req, res) {
-    try {
-        const { userID } = req.params
-        const balanceResult = await sql`
+  try {
+    const { userID } = req.params
+    const balanceResult = await sql`
             SELECT coalesce(sum(amount),0) as balance from transactions where user_id = ${userID}
         `
-        const incomeResult = await sql`
+    const incomeResult = await sql`
             select coalesce(SUM(amount),0) as income from transactions 
             where user_id = ${userID} and amount>0
         `
-        const expenseResult = await sql`
+    const expenseResult = await sql`
             select coalesce(SUM(amount),0) as expense from transactions 
             where user_id = ${userID} and amount<0
         `
 
-        res.status(200).json({
-            balance: balanceResult[0].balance,
-            income: incomeResult[0].income,
-            expense: expenseResult[0].expense,
+    res.status(200).json({
+      balance: balanceResult[0].balance,
+      income: incomeResult[0].income,
+      expense: expenseResult[0].expense,
 
-        })
+    })
 
 
-    } catch (error) {
-        console.log("Error getting the summary:", error)
-        res.status(500).json({ message: "Internal server error" });
-    }
+  } catch (error) {
+    console.log("Error getting the summary:", error)
+    res.status(500).json({ message: "Internal server error" });
+  }
 }
 
 
@@ -101,6 +101,11 @@ export async function getSummaryByUserId(req, res) {
 export async function getGroupBalances(req, res) {
   try {
     const { groupId } = req.params;
+
+    if (!(await isUserInGroup(groupId, userId))) {
+      return res.status(403).json({ message: "Access denied" });
+    }
+
     const balances = await fetchGroupBalances(groupId);
     res.status(200).json(balances);
   } catch (err) {
@@ -110,12 +115,17 @@ export async function getGroupBalances(req, res) {
 
 
 export async function getUserGroupBalance(req, res) {
-    try {
-        const { groupId, userId } = req.params;
-        if (isNaN(parseInt(groupId))) {
-            return res.status(400).json({ message: "Invalid group ID " });
-        }
-        const groupBalance = await sql`
+  try {
+    const { groupId, userId } = req.params;
+
+    if (!(await isUserInGroup(groupId, userId))) {
+      return res.status(403).json({ message: "Access denied" });
+    }
+
+    if (isNaN(parseInt(groupId))) {
+      return res.status(400).json({ message: "Invalid group ID " });
+    }
+    const groupBalance = await sql`
                 SELECT
                 COALESCE(p.total_paid, 0) -
                 COALESCE(s.total_share, 0) AS net_balance
@@ -134,40 +144,40 @@ export async function getUserGroupBalance(req, res) {
                 ) s
                 ON TRUE;
         `
-        res.status(200).json(groupBalance[0]);
+    res.status(200).json(groupBalance[0]);
 
-    } catch (error) {
-        console.log("Error getting Usergroup balances:", error);
-        res.status(500).json({ message: "Internal server error" });
-    }
+  } catch (error) {
+    console.log("Error getting Usergroup balances:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
 }
 
 export async function getTotalPaidByUser(req, res) {
 
-    try {
-        const { groupId, userId } = req.params;
-        const balances = await sql`
+  try {
+    const { groupId, userId } = req.params;
+    const balances = await sql`
     SELECT
   COALESCE(SUM(amount), 0) AS total_paid
 FROM group_expenses
 WHERE group_id = ${groupId}
   AND paid_by = ${userId};
     `
-        res.status(200).json(balances[0]);
+    res.status(200).json(balances[0]);
 
-    } catch (error) {
-        console.log("Error getting total paid by user because:", error);
-        res.status(500).json({ message: "Internal server error" });
+  } catch (error) {
+    console.log("Error getting total paid by user because:", error);
+    res.status(500).json({ message: "Internal server error" });
 
-    }
+  }
 
 }
 
 export async function getTotalShareOfUser(req, res) {
 
-    try {
-        const { groupId, userId } = req.params;
-        const result = await sql`
+  try {
+    const { groupId, userId } = req.params;
+    const result = await sql`
           SELECT
             COALESCE(SUM(es.share_amount), 0) AS total_share
           FROM expense_splits es
@@ -176,22 +186,27 @@ export async function getTotalShareOfUser(req, res) {
           WHERE ge.group_id = ${groupId}
           AND es.user_id = ${userId};
 `
-        res.status(200).json(result[0]);
+    res.status(200).json(result[0]);
 
-    } catch (error) {
-        console.log("Error getting total share of user because:", error);
-        res.status(500).json({ message: "Internal server error" });
+  } catch (error) {
+    console.log("Error getting total share of user because:", error);
+    res.status(500).json({ message: "Internal server error" });
 
 
-    }
+  }
 
 }
 
 export async function getGroupExpenseBreakdown(req, res) {
 
-    try {
-        const { groupId } = req.params;
-        const result = await sql`
+  try {
+    const { groupId } = req.params;
+
+    if (!(await isUserInGroup(groupId, userId))) {
+      return res.status(403).json({ message: "Access denied" });
+    }
+
+    const result = await sql`
           SELECT
             ge.id AS expense_id,
             ge.title,
@@ -205,19 +220,25 @@ export async function getGroupExpenseBreakdown(req, res) {
           WHERE ge.group_id = ${groupId}
           ORDER BY ge.created_at DESC;
           `
-        res.status(200).json(result);
+    res.status(200).json(result);
 
-    } catch (error) {
-        console.log("Error getting group expense breakdown because:", error);
-        res.status(500).json({ message: "Internal server error" });
+  } catch (error) {
+    console.log("Error getting group expense breakdown because:", error);
+    res.status(500).json({ message: "Internal server error" });
 
-    }
+  }
 }
 
 export async function getSettlementCandidates(req, res) {
-    try {
-        const { groupId } = req.params;
-        const result = await sql`
+  try {
+    const { groupId } = req.params;
+
+    if (!(await isUserInGroup(groupId, userId))) {
+      return res.status(403).json({ message: "Access denied" });
+    }
+
+
+    const result = await sql`
           SELECT
             user_id,
             net_balance
@@ -246,13 +267,13 @@ export async function getSettlementCandidates(req, res) {
           WHERE net_balance != 0
           ORDER BY net_balance DESC;
         `
-        return res.status(200).json(result);
+    return res.status(200).json(result);
 
-    } catch (error) {
-        console.log("Error getting who has to pay to whom becuz:", error);
-        res.status(500).json({ message: "Internal server error" });
+  } catch (error) {
+    console.log("Error getting who has to pay to whom becuz:", error);
+    res.status(500).json({ message: "Internal server error" });
 
-    }
+  }
 }
 
 export function calculateSettlementPlan(balances) {
@@ -289,7 +310,7 @@ export function calculateSettlementPlan(balances) {
   let i = 0;
   let j = 0;
 
-  
+
   while (i < debtors.length && j < creditors.length) {
     const debtor = debtors[i];
     const creditor = creditors[j];
@@ -315,6 +336,11 @@ export function calculateSettlementPlan(balances) {
 export async function getSettlementPlan(req, res) {
   try {
     const { groupId } = req.params;
+
+    if (!(await isUserInGroup(groupId, userId))) {
+      return res.status(403).json({ message: "Access denied" });
+    }
+
 
     const balances = await fetchGroupBalances(groupId);
     const settlementPlan = calculateSettlementPlan(balances);
@@ -355,6 +381,11 @@ async function fetchGroupBalances(groupId) {
 export async function createGroupExpense(req, res) {
   const { groupId } = req.params;
   const { title, amount, paidBy, splits } = req.body;
+
+  if (!(await isUserInGroup(groupId, paidBy))) {
+    return res.status(403).json({ message: "Only group members can add expenses" });
+  }
+
 
   if (isNaN(parseInt(groupId))) {
     return res.status(400).json({ message: "Invalid group ID" });
@@ -401,10 +432,27 @@ export async function createGroupExpense(req, res) {
   }
 }
 
+async function isUserInGroup(groupId, userId) {
+  const result = await sql`
+    SELECT 1 FROM group_members
+    WHERE group_id = ${groupId}
+      AND user_id = ${userId}
+  `;
+  return result.length > 0;
+}
+
 export async function requestSettlement(req, res) {
   try {
     const { groupId } = req.params;
     const { fromUser, toUser, amount } = req.body;
+
+    if (
+      !(await isUserInGroup(groupId, fromUser)) ||
+      !(await isUserInGroup(groupId, toUser))
+    ) {
+      return res.status(403).json({ message: "Both users must belong to the group" });
+    }
+
 
     if (isNaN(parseInt(groupId))) {
       return res.status(400).json({ message: "Invalid group ID" });
@@ -481,7 +529,12 @@ export async function getPendingSettlements(req, res) {
 
 export async function confirmSettlement(req, res) {
   const { settlementId } = req.params;
-  const { userId } = req.body; 
+  const { userId } = req.body;
+
+  if (!(await isUserInGroup(s.group_id, userId))) {
+    return res.status(403).json({ message: "Unauthorized" });
+  }
+
 
   if (isNaN(parseInt(settlementId))) {
     return res.status(400).json({ message: "Invalid settlement ID" });
@@ -547,7 +600,12 @@ export async function confirmSettlement(req, res) {
 
 export async function rejectSettlement(req, res) {
   const { settlementId } = req.params;
-  const { userId } = req.body; 
+  const { userId } = req.body;
+
+  if (!(await isUserInGroup(settlement.group_id, userId))) {
+    return res.status(403).json({ message: "Unauthorized" });
+  }
+
 
   if (isNaN(parseInt(settlementId))) {
     return res.status(400).json({ message: "Invalid settlement ID" });
@@ -581,4 +639,35 @@ export async function rejectSettlement(req, res) {
     res.status(500).json({ message: "Internal server error" });
   }
 }
+
+export async function getSentSettlements(req, res) {
+  try {
+    const { userId } = req.params;
+
+    if (!userId) {
+      return res.status(400).json({ message: "Invalid user ID" });
+    }
+
+    const result = await sql`
+      SELECT
+        id,
+        group_id,
+        to_user,
+        amount,
+        status,
+        created_at,
+        responded_at
+      FROM settlement_requests
+      WHERE from_user = ${userId}
+      ORDER BY created_at DESC;
+    `;
+
+    res.status(200).json(result);
+
+  } catch (error) {
+    console.log("Error fetching sent settlements:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+}
+
 
